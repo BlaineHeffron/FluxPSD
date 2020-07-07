@@ -23,10 +23,10 @@ include("CommonFunctions.jl")
 @with_kw mutable struct Args
     lr::Float64 = 3e-3
     epochs::Int = 100
-    batch_size = 100 #number of events per batch for each type
+    batch_size = 1000 #number of events per batch for each type
     savepath::String = "./"
-    n_train_evts::Int = 1000 #total number of events used for training for each type
-    n_test_evts::Int = 1000 #total number of events used for testing for each type
+    n_train_evts::Int = 100000 #total number of events used for training for each type
+    n_test_evts::Int = 20000 #total number of events used for testing for each type
     n_samples::Int = 150
     nx::Int = 14
     ny::Int = 11
@@ -127,7 +127,7 @@ function test(; kws...)
     # Loading the test data
     _,test_set = getData(args,indirs,ntype,train_dataset,test_dataset)
     # Re-constructing the model with random initial weights
-    model = buildBasicCNN(args)
+    model = buildBasicCNN(args,ntype)
     # Loading the saved parameters
     BSON.@load joinpath(args.savepath, string(modelname,".bson")) params
     # Loading parameters onto the model
