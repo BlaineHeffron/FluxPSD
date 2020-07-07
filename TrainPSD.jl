@@ -40,8 +40,8 @@ function init(; kws...)
     end
     indirs = ARGS #input directories
     modelname = getName(indirs)
-    train_dataset = Dataset(String("train_",modelname)) #files used for training
-    test_dataset = Dataset(String("test_",modelname)) #files used for testing
+    train_dataset = Dataset(string("train_",modelname)) #files used for training
+    test_dataset = Dataset(string("test_",modelname)) #files used for testing
 
     ntype = length(indirs)
     return args,ntype,modelname,train_dataset,test_dataset,indirs
@@ -98,7 +98,7 @@ function train(; kws...)
         # If this is the best accuracy we've seen so far, save the model out
         if acc >= best_acc
             @info(" -> New best accuracy! Saving model out to mnist_conv.bson")
-            BSON.@save joinpath(args.savepath,String(modelname,".bson")) params=cpu.(params(model)) epoch_idx acc
+            BSON.@save joinpath(args.savepath,string(modelname,".bson")) params=cpu.(params(model)) epoch_idx acc
             best_acc = acc
             last_improvement = epoch_idx
         end
@@ -116,8 +116,8 @@ function train(; kws...)
             @warn(" -> We're calling this converged.")
             break
         end
-        writeToFile(train_dataset,String(modelname,"_train_files.txt"))
-        writeToFile(test_dataset,String(modelname,"_test_files.txt"))
+        writeToFile(train_dataset,string(modelname,"_train_files.txt"))
+        writeToFile(test_dataset,string(modelname,"_test_files.txt"))
     end
 end
 
@@ -130,7 +130,7 @@ function test(; kws...)
     # Re-constructing the model with random initial weights
     model = buildBasicCNN(args)
     # Loading the saved parameters
-    BSON.@load joinpath(args.savepath, String(modelname,".bson")) params
+    BSON.@load joinpath(args.savepath, string(modelname,".bson")) params
     # Loading parameters onto the model
     Flux.loadparams!(model, params)
     test_set = gpu.(test_set)
