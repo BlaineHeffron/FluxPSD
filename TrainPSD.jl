@@ -30,8 +30,7 @@ include("CommonFunctions.jl")
     nx::Int = 14
     ny::Int = 11
 end
-
-function train(; kws...)
+function init(; kws...)
     args = Args(; kws...)
     if size(ARGS,1) < 2
         println("usage: julia TrainPSD.jl [<input directory1>, <input directory2>, ...]")
@@ -43,7 +42,11 @@ function train(; kws...)
     test_dataset = Dataset(String("test_",modelname)) #files used for testing
 
     ntype = length(indirs)
+    return args,ntype,modelname,train_dataset,test_dataset,indirs
+end
 
+function train(; kws...)
+    args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
     @info("Loading data set")
     sptrain, sptest = getData(args,indirs,ndet,train_dataset,test_dataset)
 
@@ -93,7 +96,7 @@ function train(; kws...)
         # If this is the best accuracy we've seen so far, save the model out
         if acc >= best_acc
             @info(" -> New best accuracy! Saving model out to mnist_conv.bson")
-            BSON.@save joinpath(args.savepath, "mnist_conv.bson") params=cpu.(params(model)) epoch_idx acc
+            BSON.@save joinpath(args.savepath,String(modelname,".bson")) params=cpu.(params(model)) epoch_idx acc
             best_acc = acc
             last_improvement = epoch_idx
         end
@@ -112,5 +115,25 @@ function train(; kws...)
             break
         end
     end
-
 end
+
+
+# Testing the model, from saved model
+function test(; kws...)
+    args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
+    # Loading the test data
+    _,test_set = getData(args,indirs,ndet,train_dataset,test_dataset)
+    # Re-constructing the model with random initial weights
+    model = buildBasicCNN(args)
+    # Loading the saved parameters
+    BSON.@load joinpath(args.savepath, String(modelname,".bson")) params
+    # Loading parameters onto the model
+    Flux.loadparams!(model, params)
+    test_set = gpu.(test_set)
+    model = gpu(model)
+    @show accuracy(test_set...,model)
+end
+
+cd(@__DIR__)
+train()
+test()
