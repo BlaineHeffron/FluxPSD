@@ -68,7 +68,7 @@ function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,
     return n
 end
 
-function readHDF(fname::String,dmx::Array{UInt16,2},offset,maxevts,numx)
+function readHDF(fname::String,dmx::Array{UInt16,4},offset,maxevts,numx)
     nevents = 0
     c = h5open(fname, "r") do fid
         data = read(fid,"Waveforms")
