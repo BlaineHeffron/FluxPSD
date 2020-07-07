@@ -10,13 +10,15 @@ using Base.Iterators: partition
 using Printf, BSON
 using SparseArrays: sparse
 using Parameters: @with_kw
-using CUDAapi
+using CUDA
 if has_cuda()
-    @info "CUDA is on"
-    import CuArrays
-    CuArrays.allowscalar(false)
+    try
+        import CuArrays
+        CuArrays.allowscalar(false)
+    catch ex
+        @warn "CUDA is installed, but CuArrays.jl fails to load" exception=(ex,catch_backtrace())
+    end
 end
-
 include("CommonFunctions.jl")
 
 @with_kw mutable struct Args
