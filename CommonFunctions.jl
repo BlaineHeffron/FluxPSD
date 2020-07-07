@@ -29,7 +29,7 @@ function getName(indirs)
     return modelname
 end
 
-function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx,excludeflist::Dataset=nothing)
+function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx::Int64,excludeflist::Dataset)
     evtcounter = 0
     n = 1
     i = 0
@@ -45,19 +45,17 @@ function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Da
 end
 
 
-function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,maxevts::Int64,nx,fileexclude::Dataset=nothing)
+function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,maxevts::Int64,nx,fileexclude::Dataset)
     #reads all WaveformSim files into Int16 2d array
     nEvts = 0
     for (root, dirs, files) in walkdir(inputdir)
         for file in files
             if endswith(file,"WaveformSim.h5")
                 nm = joinpath(root,file)
-                if(fileexclude != nothing)
-                    if hasFile(fileexclude,nm)
-                        continue
-                    end
+                if hasFile(fileexclude,nm)
+                    continue
                 end
-                thisevts = readHDF(nm,train_x,n,maxevts-nEvts)
+                thisevts = readHDF(nm,train_x,n,maxevts-nEvts,nx)
                 nEvts += thisevts
                 n += thisevts
                 addFile(fs,nm,(0,thisevts-1))
@@ -110,12 +108,12 @@ end
 
 
 function getData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
-    train_x = zeros(UInt16, (args.x,args.y,args.n_samples*2,args.n_train_evts*ntype))
+    train_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_train_evts*ntype))
     train_y = zeros(UInt8, (args.n_train_evts*ntype))
-    test_x = zeros(UInt16, (args.x,args.y,args.n_samples*2,args.n_test_evts*ntype))
+    test_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
     test_y = zeros(UInt8, (args.n_test_evts*ntype))
 
-    fillDataArrays(train_x,train_y,indirs,train_dataset,args.n_train_evts,args.nx)
+    fillDataArrays(train_x,train_y,indirs,train_dataset,args.n_train_evts,args.nx,test_dataset)
     fillDataArrays(test_x,test_y,indirs,test_dataset,args.n_test_evts,args.nx,train_dataset)
     mb_idxs = partition(1:length(train_x), args.batch_size)
     train_set = [make_minibatch(train_x, train_y, i) for i in mb_idxs]
