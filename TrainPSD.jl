@@ -26,8 +26,8 @@ include("CommonFunctions.jl")
     epochs::Int = 100
     batch_size = 10000
     savepath::String = "./"
-    n_train_evts::Int = 1000000
-    n_test_evts::Int = 100000
+    n_train_evts::Int = 100000
+    n_test_evts::Int = 10000
     n_samples::Int = 150
     nx::Int = 14
     ny::Int = 11
@@ -139,5 +139,5 @@ function test(; kws...)
 end
 
 cd(@__DIR__)
-train()
-test()
+@time train()
+@time test()
