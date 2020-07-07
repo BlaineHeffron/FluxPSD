@@ -4,7 +4,7 @@ using SparseArrays: sparse
 using Base.Iterators: partition
 using Flux: onehotbatch, onecold, logitcrossentropy
 
-function getDetCoord(n::Int,num_x::Int)
+function getDetCoord(n::Int32,num_x::Int)
     #n = 2*seg + i (where i = 0 or 1 left or right)
     #nx = seg%ncol, ny = floor(seg/ncol)
     nc::Int = n%2
