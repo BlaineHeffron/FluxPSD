@@ -60,7 +60,7 @@ function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,
                 thisevts = readHDF(nm,train_x,n,maxevts-nEvts)
                 nEvts += thisevts
                 n += thisevts
-                addFile(fs,nm)
+                addFile(fs,nm,(0,thisevts-1))
                 if nEvts >= maxevts
                     return n
                 end

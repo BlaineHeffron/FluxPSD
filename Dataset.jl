@@ -10,6 +10,12 @@ function addFile(d::Dataset,f::String)
     end
 end
 
+function addFile(d::Dataset,f::String,l::Tuple{Int64,Int64})
+    if !haskey(d.eventmap,f)
+        d.eventmap[f] = l
+    end
+end
+
 function setEventRange(d::Dataset,f::String,l::Tuple{Int64,Int64})
     d.eventmap[f] = l
 end
