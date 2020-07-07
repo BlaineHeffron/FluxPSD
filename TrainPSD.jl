@@ -5,11 +5,11 @@ TrainPSD:
 - Date: 2020-07-06
 =#
 using Flux
-using Flux: onehotbatch, onecold, logitcrossentropy
+using Flux: logitcrossentropy
 using Base.Iterators: partition
 using Printf, BSON
-using SparseArrays: sparse
 using Parameters: @with_kw
+using Statistics: mean
 using CUDA
 if has_cuda()
     try
@@ -24,10 +24,10 @@ include("CommonFunctions.jl")
 @with_kw mutable struct Args
     lr::Float64 = 3e-3
     epochs::Int = 100
-    batch_size = 10000
+    batch_size = 100 #number of events per batch for each type
     savepath::String = "./"
-    n_train_evts::Int = 100000
-    n_test_evts::Int = 10000
+    n_train_evts::Int = 1000 #total number of events used for training for each type
+    n_test_evts::Int = 1000 #total number of events used for testing for each type
     n_samples::Int = 150
     nx::Int = 14
     ny::Int = 11
@@ -86,7 +86,7 @@ function train(; kws...)
         end
 
         # Calculate accuracy:
-        acc = accuracy(sptest..., model)
+        acc = accuracy(sptest..., model,ntype)
 
         @info(@sprintf("[%d]: Test accuracy: %.4f", epoch_idx, acc))
         # If our accuracy is good enough, quit out.
@@ -135,7 +135,7 @@ function test(; kws...)
     Flux.loadparams!(model, params)
     test_set = gpu.(test_set)
     model = gpu(model)
-    @show accuracy(test_set...,model)
+    @show accuracy(test_set...,model,ntype)
 end
 
 cd(@__DIR__)

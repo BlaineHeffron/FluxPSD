@@ -31,7 +31,7 @@ function getName(indirs)
     return modelname
 end
 
-function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx::Int64,excludeflist::Dataset)
+function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx::Int64,excludeflist::Dataset,nsamp)
     evtcounter = 0
     n = 1
     i = 0
@@ -99,44 +99,52 @@ function readHDF(fname::String,dmx::Array{UInt16,4},offset,maxevts,numx,nsamp)
 end
 
 
-function makeMinibatch(X, Y, idxs,ntypes)
-    X_batch = Array{UInt16}(undef, size(X[1])..., 1, length(idxs))
+function makeMinibatch(X, Y, idxs,ntypes,nx,ny,nsamp)
+    X_batch = Array{UInt16}(undef, nx,ny,nsamp*2, length(idxs))
     for i in 1:length(idxs)
-        X_batch[:, :, :, i] = UInt16.(X[idxs[i]])
+        X_batch[:, :, :, i] = X[:,:,:,idxs[i]]
     end
     Y_batch = onehotbatch(Y[idxs], 0:(ntypes-1))
     return (X_batch, Y_batch)
 end
 
+paramvec(m) = vcat(map(p->reshape(p,:),params(m))...)
+
+anynan(x) = any(isnan.(x))
+
+accuracy(x,y,model,n) = mean(onecold(cpu(model(x)),0:(n-1)) .== onecold(cpu(y),0:(n-1)))
+
 
 function getData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
-    train_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_train_evts*ntype))
-    train_y = zeros(UInt8, (args.n_train_evts*ntype))
+    nsets = floor(Int,args.n_train_evts/args.batch_size)
+    train_set = []
+    for i in 1:nsets
+        train_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,ntype*args.batch_size))
+        train_y = zeros(UInt8, (ntype*args.batch_size))
+        fillDataArrays(train_x,train_y,indirs,train_dataset,args.batch_size,args.nx,train_dataset,args.n_samples)
+        push!(train_set,(train_x,onehotbatch(train_y,0:(ntype-1))))
+    end
     test_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
     test_y = zeros(UInt8, (args.n_test_evts*ntype))
-
-    fillDataArrays(train_x,train_y,indirs,train_dataset,args.n_train_evts,args.nx,test_dataset,args.n_samples)
     fillDataArrays(test_x,test_y,indirs,test_dataset,args.n_test_evts,args.nx,train_dataset,args.n_samples)
-    mb_idxs = partition(1:length(train_x), args.batch_size)
-    train_set = [make_minibatch(train_x, train_y, i) for i in mb_idxs]
-    test_set = make_minibatch(test_x, test_y, 1:length(test_x))
+#    train_set = [makeMinibatch(train_x, train_y, i,ntype,args.nx,args.ny,args.n_samples) for i in mb_idxs]
+#    test_set = makeMinibatch(test_x, test_y, 1:length(test_x),ntype,args.nx,args.ny,args.n_samples)
+#    return train_set,test_set
 
-    sptrain = sparse(train_set)
-    sptest = sparse(test_set)
-    return sptrain, sptest
+    return train_set, (test_x,onehotbatch(test_y,0:(ntype-1)))
 
 end
 
 function buildBasicCNN(args, ntype)
     cnn_output_size = Int.(floor.([args.nx/8,args.ny/8,32]))
     return Chain(
-    Conv((1, 1), floor(args.nsamp*2)=>floor(args.nsamp/8), pad=0,stride=1, relu),
-    Conv((3, 3), floor(args.nsamp/8)=>floor(args.nsamp/8), pad=1,stride=1, relu),
-    Conv((3, 3), floor(args.nsamp/8)=>floor(args.nsamp/16), pad=0,stride=2, relu),
+    Conv((1, 1), floor(Int,args.n_samples*2)=>floor(Int,args.n_samples/8), pad=(0,0),stride=(1,1), relu),
+    Conv((3, 3), floor(Int,args.n_samples/8)=>floor(Int,args.n_samples/8), pad=(1,1),stride=(1,1), relu),
+    Conv((3, 3), floor(Int,args.n_samples/8)=>floor(Int,args.n_samples/16), pad=(0,0),stride=(2,2), relu),
     x -> reshape(x, :, size(x, 4)),
-    Dense(args.nx*args.ny, floor(args.nx*args.ny*.75)),
-    Dense(floor(args.nx*args.ny*.75), floor(args.nx*args.ny*.5)),
-    Dense(floor(args.nx*args.ny*.5), ntype),
+    Dense(270,135),
+    Dense(135,32),
+    Dense(32,ntype),
     softmax)
 end
 
