@@ -1,4 +1,6 @@
 include("Dataset.jl")
+using HDF5;
+using SparseArrays: sparse
 using Base.Iterators: partition
 using Flux: onehotbatch, onecold, logitcrossentropy
 
