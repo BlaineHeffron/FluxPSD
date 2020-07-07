@@ -9,7 +9,6 @@ using Flux: logitcrossentropy
 using Base.Iterators: partition
 using Printf, BSON
 using Parameters: @with_kw
-using Statistics: mean
 using CUDA
 if has_cuda()
     try

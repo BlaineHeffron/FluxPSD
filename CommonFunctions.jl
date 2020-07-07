@@ -3,6 +3,7 @@ using HDF5;
 using SparseArrays: sparse
 using Base.Iterators: partition
 using Flux: onehotbatch, onecold, logitcrossentropy
+using Statistics: mean
 
 function getDetCoord(n::Int32,num_x::Int)
     #n = 2*seg + i (where i = 0 or 1 left or right)
