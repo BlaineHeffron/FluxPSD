@@ -22,19 +22,19 @@ end
 
 function print(d::Dataset)
     println(d.name)
-    for key in d.eventmap
-        println(String(key,": events ", d.eventmap[key][1], " - ",d.eventmap[key][2]))
+    for (key,val) in d.eventmap
+        println(string(key,": events ", val[1], " - ",val[2]))
     end
 end
 
 function writeToFile(d::Dataset,fname::String)
     open(fname, "w") do f
         i = 0
-        for key in d.eventmap
+        for (key,val) in d.eventmap
             if i == 0 
-                write(f, String(key,",", d.eventmap[key][1], ",",d.eventmap[key][2]))
+                write(f, string(key,",", val[1], ",",val[2]))
             else
-                write(f, String("\n",key,",", d.eventmap[key][1], ",",d.eventmap[key][2]))
+                write(f, string("\n",key,",", val[1], ",",val[2]))
             end
             i+=1
         end
