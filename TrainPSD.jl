@@ -11,11 +11,11 @@ using Printf, BSON
 using SparseArrays: sparse
 using Parameters: @with_kw
 using CUDAapi
-#if has_cuda()
-#    @info "CUDA is on"
-#    import CuArrays
-#    CuArrays.allowscalar(false)
-#end
+if has_cuda()
+    @info "CUDA is on"
+    import CuArrays
+    CuArrays.allowscalar(false)
+end
 
 include("CommonFunctions.jl")
 
@@ -114,6 +114,8 @@ function train(; kws...)
             @warn(" -> We're calling this converged.")
             break
         end
+        writeToFile(train_dataset,String(modelname,"_train_files.txt"))
+        writeToFile(test_dataset,String(modelname,"_test_files.txt"))
     end
 end
 
