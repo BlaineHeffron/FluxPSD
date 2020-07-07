@@ -50,7 +50,7 @@ end
 function train(; kws...)
     args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
     @info("Loading data set")
-    sptrain, sptest = getData(args,indirs,ndet,train_dataset,test_dataset)
+    sptrain, sptest = getData(args,indirs,ntype,train_dataset,test_dataset)
 
     @info("Building basic CNN model...")
     model = buildBasicCNN(args,ntype)
@@ -126,7 +126,7 @@ end
 function test(; kws...)
     args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
     # Loading the test data
-    _,test_set = getData(args,indirs,ndet,train_dataset,test_dataset)
+    _,test_set = getData(args,indirs,ntype,train_dataset,test_dataset)
     # Re-constructing the model with random initial weights
     model = buildBasicCNN(args)
     # Loading the saved parameters
