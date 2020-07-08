@@ -5,6 +5,33 @@ using Base.Iterators: partition
 using Flux: onehotbatch, onecold, logitcrossentropy
 using Statistics: mean
 
+@with_kw mutable struct Args
+    lr::Float64 = 3e-3
+    epochs::Int = 100
+    batch_size = 1000 #number of events per batch for each type
+    savepath::String = "./"
+    n_train_evts::Int = 100000 #total number of events used for training for each type
+    n_test_evts::Int = 20000 #total number of events used for testing for each type
+    n_samples::Int = 150
+    nx::Int = 14
+    ny::Int = 11
+end
+
+function init(; kws...)
+    args = Args(; kws...)
+    if size(ARGS,1) < 2
+        println("usage: julia TrainPSD.jl [<input directory1>, <input directory2>, ...]")
+        exit(500)
+    end
+    indirs = ARGS #input directories
+    modelname = getName(indirs)
+    train_dataset = Dataset(string("train_",modelname)) #files used for training
+    test_dataset = Dataset(string("test_",modelname)) #files used for testing
+
+    ntype = length(indirs)
+    return args,ntype,modelname,train_dataset,test_dataset,indirs
+end
+
 function getDetCoord(n::Int32,num_x::Int)
     #n = 2*seg + i (where i = 0 or 1 left or right)
     #nx = seg%ncol, ny = floor(seg/ncol)
@@ -136,6 +163,13 @@ function getData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
 
 end
 
+function getTestData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
+    test_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
+    test_y = zeros(UInt8, (args.n_test_evts*ntype))
+    fillDataArrays(test_x,test_y,indirs,test_dataset,args.n_test_evts,args.nx,train_dataset,args.n_samples)
+    return (test_x,onehotbatch(test_y,0:(ntype-1)))
+end
+
 function buildBasicCNN(args, ntype)
     cnn_output_size = Int.(floor.([args.nx/8,args.ny/8,32]))
     return Chain(
@@ -149,3 +183,18 @@ function buildBasicCNN(args, ntype)
     softmax)
 end
 
+function test(; kws...)
+    args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
+    # Loading the test data
+    setData(train_dataset,joinpath(args.savepath,string(modelname,"_test_files.txt")))  #get the train dataset to we know the files not to use
+    test_set = getTestData(args,indirs,ntype,train_dataset,test_dataset)
+    # Re-constructing the model with random initial weights
+    model = buildBasicCNN(args,ntype)
+    # Loading the saved parameters
+    BSON.@load joinpath(args.savepath, string(modelname,".bson")) params
+    # Loading parameters onto the model
+    Flux.loadparams!(model, params)
+    test_set = gpu.(test_set)
+    model = gpu(model)
+    @show accuracy(test_set...,model,ntype)
+end

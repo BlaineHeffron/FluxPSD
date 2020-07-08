@@ -31,20 +31,6 @@ include("CommonFunctions.jl")
     nx::Int = 14
     ny::Int = 11
 end
-function init(; kws...)
-    args = Args(; kws...)
-    if size(ARGS,1) < 2
-        println("usage: julia TrainPSD.jl [<input directory1>, <input directory2>, ...]")
-        exit(500)
-    end
-    indirs = ARGS #input directories
-    modelname = getName(indirs)
-    train_dataset = Dataset(string("train_",modelname)) #files used for training
-    test_dataset = Dataset(string("test_",modelname)) #files used for testing
-
-    ntype = length(indirs)
-    return args,ntype,modelname,train_dataset,test_dataset,indirs
-end
 
 function train(; kws...)
     args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
@@ -58,6 +44,10 @@ function train(; kws...)
     sptrain = gpu.(sptrain)
     sptest = gpu.(sptest)
     model = gpu(model)
+
+    # write the dataset to file
+    writeToFile(train_dataset,joinpath(args.savepath,string(modelname,"_train_files.txt")))
+    writeToFile(test_dataset,joinpath(args.savepath,string(modelname,"_test_files.txt")))
 
     # Make sure our model is nicely precompiled before starting our training loop
     model(sptrain[1][1])
@@ -115,27 +105,10 @@ function train(; kws...)
             @warn(" -> We're calling this converged.")
             break
         end
-        writeToFile(train_dataset,string(modelname,"_train_files.txt"))
-        writeToFile(test_dataset,string(modelname,"_test_files.txt"))
     end
 end
 
 
-# Testing the model, from saved model
-function test(; kws...)
-    args,ntype,modelname,train_dataset,test_dataset,indirs = init(; kws...)
-    # Loading the test data
-    _,test_set = getData(args,indirs,ntype,train_dataset,test_dataset)
-    # Re-constructing the model with random initial weights
-    model = buildBasicCNN(args,ntype)
-    # Loading the saved parameters
-    BSON.@load joinpath(args.savepath, string(modelname,".bson")) params
-    # Loading parameters onto the model
-    Flux.loadparams!(model, params)
-    test_set = gpu.(test_set)
-    model = gpu(model)
-    @show accuracy(test_set...,model,ntype)
-end
 
 cd(@__DIR__)
 @time train()

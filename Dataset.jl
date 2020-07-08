@@ -45,3 +45,11 @@ function hasFile(d::Dataset,fname::String)
     return haskey(d.eventmap,fname)
 end
 
+function setData(d::Dataset,fname::String)
+    #read dataset file to load dataset
+    for line in readlines(fname)
+        data = split(line,",")
+        addFile(d,String(data[1]),(parse(Int64,data[2]),parse(Int64,data[3])))
+    end
+end
+
