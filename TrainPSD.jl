@@ -24,7 +24,7 @@ include("CommonFunctions.jl")
     lr::Float64 = 3e-3
     epochs::Int = 100
     batch_size = 1000 #number of events per batch for each type
-    savepath::String = "./"
+    savepath::String = "./model"
     n_train_evts::Int = 100000 #total number of events used for training for each type
     n_test_evts::Int = 20000 #total number of events used for testing for each type
     n_samples::Int = 150
