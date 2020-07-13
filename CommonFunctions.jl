@@ -59,7 +59,7 @@ function getName(indirs)
     return modelname
 end
 
-function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx::Int64,excludeflist::Dataset,nsamp)
+function fillDataArrays(x::Array{Float32,4},y::Array{UInt8,1},indirs,filelist::Dataset,n_evts_per_type::Int64,nx::Int64,excludeflist::Dataset,nsamp)
     evtcounter = 0
     n = 1
     i = 0
@@ -75,7 +75,7 @@ function fillDataArrays(x::Array{UInt16,4},y::Array{UInt8,1},indirs,filelist::Da
 end
 
 
-function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,maxevts::Int64,nx,fileexclude::Dataset,nsamp)
+function readDir(inputdir::String,train_x::Array{Float32,4},n::Int64,fs::Dataset,maxevts::Int64,nx,fileexclude::Dataset,nsamp)
     #reads all WaveformSim files into Int16 2d array
     nEvts = 0
     for (root, dirs, files) in walkdir(inputdir)
@@ -98,7 +98,7 @@ function readDir(inputdir::String,train_x::Array{UInt16,4},n::Int64,fs::Dataset,
     return n
 end
 
-function readHDF(fname::String,dmx::Array{UInt16,4},offset,maxevts,numx,nsamp)
+function readHDF(fname::String,dmx::Array{Float32,4},offset,maxevts,numx,nsamp)
     nevents = 0
     c = h5open(fname, "r") do fid
         data = read(fid,"Waveforms")
@@ -128,7 +128,7 @@ end
 
 
 function makeMinibatch(X, Y, idxs,ntypes,nx,ny,nsamp)
-    X_batch = Array{UInt16}(undef, nx,ny,nsamp*2, length(idxs))
+    X_batch = Array{Float32}(undef, nx,ny,nsamp*2, length(idxs))
     for i in 1:length(idxs)
         X_batch[:, :, :, i] = X[:,:,:,idxs[i]]
     end
@@ -147,12 +147,12 @@ function getData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
     nsets = floor(Int,args.n_train_evts/args.batch_size)
     train_set = []
     for i in 1:nsets
-        train_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,ntype*args.batch_size))
+        train_x = zeros(Float32, (args.nx,args.ny,args.n_samples*2,ntype*args.batch_size))
         train_y = zeros(UInt8, (ntype*args.batch_size))
         fillDataArrays(train_x,train_y,indirs,train_dataset,args.batch_size,args.nx,train_dataset,args.n_samples)
         push!(train_set,(train_x,onehotbatch(train_y,0:(ntype-1))))
     end
-    test_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
+    test_x = zeros(Float32, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
     test_y = zeros(UInt8, (args.n_test_evts*ntype))
     fillDataArrays(test_x,test_y,indirs,test_dataset,args.n_test_evts,args.nx,train_dataset,args.n_samples)
 #    train_set = [makeMinibatch(train_x, train_y, i,ntype,args.nx,args.ny,args.n_samples) for i in mb_idxs]
@@ -164,7 +164,7 @@ function getData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
 end
 
 function getTestData(args,indirs,ntype,train_dataset::Dataset,test_dataset::Dataset)
-    test_x = zeros(UInt16, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
+    test_x = zeros(Float32, (args.nx,args.ny,args.n_samples*2,args.n_test_evts*ntype))
     test_y = zeros(UInt8, (args.n_test_evts*ntype))
     fillDataArrays(test_x,test_y,indirs,test_dataset,args.n_test_evts,args.nx,train_dataset,args.n_samples)
     return (test_x,onehotbatch(test_y,0:(ntype-1)))
